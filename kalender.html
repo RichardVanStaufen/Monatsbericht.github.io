@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#f5f4f0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Mein Kalender</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #ede9e0;
+    --border: rgba(0,0,0,0.09);
+    --text: #1a1a2a;
+    --text-muted: #888899;
+    --accent: #c9a84c;
+
+    --mon: #ede8f7;   /* Montag - Lila */
+    --tue: #e6f5ee;   /* Dienstag - Dunkelgrün */
+    --wed: #e6eef8;   /* Mittwoch - Dunkelblau */
+    --thu: #f5ede4;   /* Donnerstag - Braun */
+    --fri: #e4f2f0;   /* Freitag - Petrol */
+    --sat: #f7e4ee;   /* Samstag - Dunkelrot */
+    --sun: #ecf5e4;   /* Sonntag - Waldgrün */
+
+    --mon-accent: #9b59d0;
+    --tue-accent: #2ecc71;
+    --wed-accent: #3b9fe8;
+    --thu-accent: #e67e22;
+    --fri-accent: #1abc9c;
+    --sat-accent: #e84393;
+    --sun-accent: #7ed321;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overscroll-behavior: none;
+  }
+
+  /* HEADER */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(245,244,240,0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.5rem;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+  }
+
+  .today-btn {
+    background: var(--accent);
+    color: #0f0f1a;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.8rem;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+  }
+
+  .header-btns { display: flex; gap: 8px; align-items: center; }
+
+  .print-btn {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid rgba(201,168,76,0.4);
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.8rem;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+  }
+
+  /* PRINT MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px 36px;
+    width: 100%;
+    max-width: 480px;
+    animation: slideUp 0.25s ease;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .modal h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.3rem;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+
+  .modal p {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    line-height: 1.5;
+  }
+
+  .modal-select {
+    width: 100%;
+    background: rgba(0,0,0,0.03);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    padding: 11px 14px;
+    margin-bottom: 16px;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+  }
+
+  .modal-actions { display: flex; gap: 10px; }
+
+  .btn-cancel {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 12px;
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  .btn-print {
+    flex: 2;
+    background: var(--accent);
+    border: none;
+    color: #0f0f1a;
+    padding: 12px;
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  /* PRINT STYLES */
+  @media print {
+    body * { visibility: hidden; }
+    #print-area, #print-area * { visibility: visible; }
+    #print-area {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: white !important;
+      color: #111 !important;
+      padding: 24px;
+      font-family: sans-serif;
+      overflow: visible;
+      z-index: 9999;
+      display: block !important;
+    }
+    .print-header {
+      border-bottom: 2px solid #111;
+      padding-bottom: 10px;
+      margin-bottom: 20px;
+    }
+    .print-header h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.6rem;
+      color: #111;
+    }
+    .print-header .print-meta {
+      font-size: 0.75rem;
+      color: #666;
+      margin-top: 2px;
+    }
+    .print-day {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      padding: 12px 14px;
+      page-break-inside: avoid;
+    }
+    .print-day-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .print-day-num {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.5rem;
+      color: #111;
+      min-width: 32px;
+    }
+    .print-day-name {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #555;
+    }
+    .print-day-mood { font-size: 1.4rem; margin-left: auto; }
+    .print-field { margin-bottom: 6px; }
+    .print-field-label {
+      font-size: 0.6rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #999;
+      margin-bottom: 2px;
+    }
+    .print-field-value {
+      font-size: 0.85rem;
+      color: #222;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .print-summary {
+      margin-top: 24px;
+      border-top: 1px solid #ddd;
+      padding-top: 14px;
+    }
+    .print-summary h3 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1rem;
+      margin-bottom: 8px;
+      color: #111;
+    }
+    .print-summary-row {
+      display: flex;
+      gap: 20px;
+      font-size: 0.85rem;
+      color: #333;
+    }
+    .print-summary-item { display: flex; align-items: center; gap: 6px; }
+  }
+
+  /* YEAR NAV */
+  .year-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    padding: 16px 20px 0;
+  }
+
+  .year-nav button {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+  }
+
+  .year-nav button:active { background: var(--bg); }
+
+  .year-display {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    color: var(--text);
+    letter-spacing: -0.03em;
+    min-width: 100px;
+    text-align: center;
+  }
+
+  /* CALENDAR CONTAINER */
+  .calendar {
+    padding: 12px 12px 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  /* MONTH */
+  .month {
+    animation: fadeUp 0.3s ease both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .month-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.15rem;
+    color: var(--accent);
+    padding: 8px 4px 10px;
+    letter-spacing: -0.01em;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 10px;
+  }
+
+  /* DAY CARD */
+  .day-card {
+    border-radius: 14px;
+    margin-bottom: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    transition: border-color 0.2s;
+  }
+
+  .day-card.today .day-header { position: relative; }
+  .day-card.today .day-header::after {
+    content: 'Heute';
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: rgba(201,168,76,0.15);
+    padding: 3px 8px;
+    border-radius: 10px;
+  }
+
+  .day-card.today { border-color: rgba(201,168,76,0.35); }
+
+  .day-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    cursor: pointer;
+    user-select: none;
+    transition: opacity 0.15s;
+  }
+
+  .day-header:active { opacity: 0.8; }
+
+  .day-number {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.6rem;
+    line-height: 1;
+    min-width: 36px;
+    color: var(--text);
+    letter-spacing: -0.03em;
+  }
+
+  .day-info { flex: 1; min-width: 0; }
+
+  .day-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    margin-bottom: 2px;
+  }
+
+  .day-preview {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+  }
+
+  .day-mood-display {
+    font-size: 1.3rem;
+    line-height: 1;
+  }
+
+  /* EXPAND ICON */
+  .expand-icon {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    transition: transform 0.25s;
+    flex-shrink: 0;
+  }
+
+  .day-card.open .expand-icon { transform: rotate(180deg); }
+
+  /* DAY BODY */
+  .day-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+  }
+
+  .day-card.open .day-body { max-height: 500px; }
+
+  .day-body-inner {
+    padding: 0 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+  }
+
+  .field-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .field-input {
+    width: 100%;
+    background: rgba(0,0,0,0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    padding: 9px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+    resize: none;
+  }
+
+  .field-input:focus { border-color: rgba(201,168,76,0.4); }
+  .field-input::placeholder { color: var(--text-muted); }
+
+  textarea.field-input { min-height: 72px; line-height: 1.5; }
+
+  /* MOOD PICKER */
+  .mood-picker {
+    display: flex;
+    gap: 10px;
+  }
+
+  .mood-btn {
+    flex: 1;
+    background: rgba(0,0,0,0.03);
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 4px;
+    font-size: 1.6rem;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    line-height: 1;
+  }
+
+  .mood-btn.active {
+    background: rgba(0,0,0,0.08);
+    border-color: rgba(0,0,0,0.25);
+    transform: scale(1.06);
+  }
+
+  .mood-btn:active { transform: scale(0.95); }
+
+  /* WEEKDAY COLORS */
+  .day-card[data-dow="1"] .day-header { background: var(--mon); }
+  .day-card[data-dow="2"] .day-header { background: var(--tue); }
+  .day-card[data-dow="3"] .day-header { background: var(--wed); }
+  .day-card[data-dow="4"] .day-header { background: var(--thu); }
+  .day-card[data-dow="5"] .day-header { background: var(--fri); }
+  .day-card[data-dow="6"] .day-header { background: var(--sat); }
+  .day-card[data-dow="0"] .day-header { background: var(--sun); }
+
+  .day-card[data-dow="1"] .day-name { color: var(--mon-accent); }
+  .day-card[data-dow="2"] .day-name { color: var(--tue-accent); }
+  .day-card[data-dow="3"] .day-name { color: var(--wed-accent); }
+  .day-card[data-dow="4"] .day-name { color: var(--thu-accent); }
+  .day-card[data-dow="5"] .day-name { color: var(--fri-accent); }
+  .day-card[data-dow="6"] .day-name { color: var(--sat-accent); }
+  .day-card[data-dow="0"] .day-name { color: var(--sun-accent); }
+
+  /* SCROLL TO TOP */
+  .fab {
+    position: fixed;
+    bottom: 24px;
+    right: 20px;
+    width: 48px;
+    height: 48px;
+    background: var(--accent);
+    color: #0f0f1a;
+    border: none;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(201,168,76,0.4);
+    z-index: 99;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity 0.2s, transform 0.2s;
+  }
+
+  .fab.visible { opacity: 1; transform: scale(1); }
+
+  /* LAZY LOAD SENTINEL */
+  .sentinel { height: 1px; }
+
+  /* Saved indicator */
+  .saved-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.3s;
+    flex-shrink: 0;
+  }
+
+  .saved-dot.show { opacity: 1; }
+  /* DELETE BUTTON in day card */
+  .delete-day-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255,80,80,0.4);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: color 0.2s, background 0.2s;
+    align-self: flex-end;
+  }
+  .delete-day-btn:active { color: #ff5050; background: rgba(255,80,80,0.1); }
+
+  /* DELETE MODAL */
+  .del-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(6px);
+    padding: 20px;
+  }
+  .del-modal-overlay.open { display: flex; }
+
+  .del-modal {
+    background: #ffffff;
+    border: 1px solid rgba(255,80,80,0.25);
+    border-radius: 20px;
+    padding: 28px 22px 22px;
+    width: 100%;
+    max-width: 400px;
+    animation: popIn 0.2s ease;
+  }
+
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.93); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .del-modal h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.25rem;
+    color: #ff6b6b;
+    margin-bottom: 8px;
+  }
+
+  .del-modal p {
+    font-size: 0.83rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+
+  .del-tabs {
+    display: flex;
+    background: rgba(0,0,0,0.05);
+    border-radius: 10px;
+    padding: 4px;
+    gap: 4px;
+    margin-bottom: 18px;
+  }
+
+  .del-tab {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 8px 4px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: all 0.18s;
+    text-align: center;
+  }
+
+  .del-tab.active {
+    background: rgba(255,80,80,0.18);
+    color: #ff6b6b;
+  }
+
+  .del-panel { display: none; }
+  .del-panel.active { display: block; }
+
+  .del-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .del-select {
+    flex: 1;
+    background: rgba(0,0,0,0.03);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    padding: 10px 12px;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+  }
+
+  .del-input {
+    flex: 1;
+    background: rgba(0,0,0,0.03);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    padding: 10px 12px;
+    outline: none;
+  }
+
+  .del-input[type=number] { -moz-appearance: textfield; }
+  .del-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .del-label {
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 5px;
+  }
+
+  .del-field { margin-bottom: 12px; }
+
+  .del-actions { display: flex; gap: 10px; margin-top: 6px; }
+
+  .btn-del-cancel {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 12px;
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  .btn-del-confirm {
+    flex: 2;
+    background: rgba(255,80,80,0.15);
+    border: 1px solid rgba(255,80,80,0.4);
+    color: #ff6b6b;
+    padding: 12px;
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-del-confirm:active { background: rgba(255,80,80,0.3); }
+
+  /* Settings icon in header */
+  .settings-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s;
+  }
+  .settings-btn:active { border-color: rgba(255,80,80,0.4); }
+
+  /* Toast notification */
+  .toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: #ffffff;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.25s, transform 0.25s;
+    z-index: 400;
+    pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Mein Kalender</h1>
+  <div class="header-btns">
+    <button class="settings-btn" onclick="openDeleteModal()" title="Löschen">🗑</button>
+    <button class="print-btn" onclick="openPrintModal()">🖨 Drucken</button>
+    <button class="today-btn" onclick="scrollToToday()">Heute</button>
+  </div>
+</header>
+
+<!-- Delete Modal -->
+<div class="del-modal-overlay" id="deleteModal">
+  <div class="del-modal">
+    <h2>🗑 Einträge löschen</h2>
+    <p>Wähle was gelöscht werden soll. Diese Aktion kann nicht rückgängig gemacht werden.</p>
+
+    <div class="del-tabs">
+      <button class="del-tab active" onclick="switchDelTab('day', this)">Tag</button>
+      <button class="del-tab" onclick="switchDelTab('month', this)">Monat</button>
+      <button class="del-tab" onclick="switchDelTab('year', this)">Jahr</button>
+      <button class="del-tab" onclick="switchDelTab('range', this)">Zeitraum</button>
+      <button class="del-tab" onclick="switchDelTab('auto', this)">Auto</button>
+    </div>
+
+    <!-- TAB: Tag -->
+    <div class="del-panel active" id="del-panel-day">
+      <div class="del-field">
+        <div class="del-label">Datum</div>
+        <input type="date" class="del-input" id="del-day-date" style="flex:1;width:100%" />
+      </div>
+    </div>
+
+    <!-- TAB: Monat -->
+    <div class="del-panel" id="del-panel-month">
+      <div class="del-row">
+        <div style="flex:1">
+          <div class="del-label">Monat</div>
+          <select class="del-select" id="del-month-m"></select>
+        </div>
+        <div style="flex:1">
+          <div class="del-label">Jahr</div>
+          <select class="del-select" id="del-month-y"></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: Jahr -->
+    <div class="del-panel" id="del-panel-year">
+      <div class="del-field">
+        <div class="del-label">Jahr</div>
+        <select class="del-select" id="del-year-y" style="width:100%"></select>
+      </div>
+    </div>
+
+    <!-- TAB: Zeitraum -->
+    <div class="del-panel" id="del-panel-range">
+      <div class="del-field">
+        <div class="del-label">Von</div>
+        <input type="date" class="del-input" id="del-range-from" style="width:100%" />
+      </div>
+      <div class="del-field">
+        <div class="del-label">Bis</div>
+        <input type="date" class="del-input" id="del-range-to" style="width:100%" />
+      </div>
+    </div>
+
+    <!-- TAB: Automatisch -->
+    <div class="del-panel" id="del-panel-auto">
+      <div class="del-field">
+        <div class="del-label">Einträge älter als … Tage löschen</div>
+        <input type="number" class="del-input" id="del-auto-days" placeholder="z.B. 90" min="1" max="3650" style="width:100%" />
+      </div>
+      <p style="font-size:0.75rem;color:var(--text-muted);margin-top:-4px;margin-bottom:0;line-height:1.5">
+        Löscht alle Einträge die älter sind als die angegebene Anzahl an Tagen ab heute.
+      </p>
+    </div>
+
+    <div class="del-actions">
+      <button class="btn-del-cancel" onclick="closeDeleteModal()">Abbrechen</button>
+      <button class="btn-del-confirm" onclick="confirmDelete()">Jetzt löschen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Print Modal -->
+<div class="modal-overlay" id="printModal">
+  <div class="modal">
+    <h2>Monatsauswertung drucken</h2>
+    <p>Es werden nur Tage mit Einträgen gedruckt — inklusive Name, Notizen und Stimmung.</p>
+    <select class="modal-select" id="printMonthSelect"></select>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="document.getElementById('printModal').classList.remove('open')">Abbrechen</button>
+      <button class="btn-print" onclick="doPrint()">Jetzt drucken</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden print area -->
+<div id="print-area" style="display:none"></div>
+
+<div class="year-nav">
+  <button onclick="changeYear(-1)">‹</button>
+  <div class="year-display" id="yearDisplay">2025</div>
+  <button onclick="changeYear(1)">›</button>
+</div>
+
+<div class="calendar" id="calendar"></div>
+
+<button class="fab" id="fab" onclick="scrollToTop()" title="Nach oben">↑</button>
+<div class="sentinel" id="sentinel"></div>
+
+<script>
+const DAYS_DE = ['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'];
+const MONTHS_DE = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
+const MOODS = ['😁','🙂','☹️'];
+
+let currentYear = new Date().getFullYear();
+const today = new Date();
+today.setHours(0,0,0,0);
+
+// Storage helpers
+function storageKey(year, month, day) {
+  return `day_${year}_${String(month+1).padStart(2,'0')}_${String(day).padStart(2,'0')}`;
+}
+
+function loadDay(year, month, day) {
+  try {
+    const raw = localStorage.getItem(storageKey(year, month, day));
+    return raw ? JSON.parse(raw) : { name: '', note: '', mood: null };
+  } catch { return { name: '', note: '', mood: null }; }
+}
+
+function saveDay(year, month, day, data) {
+  localStorage.setItem(storageKey(year, month, day), JSON.stringify(data));
+}
+
+// Calendar rendering
+function daysInMonth(year, month) {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+function isToday(year, month, day) {
+  return year === today.getFullYear() && month === today.getMonth() && day === today.getDate();
+}
+
+function createDayCard(year, month, day) {
+  const date = new Date(year, month, day);
+  const dow = date.getDay(); // 0=Sun
+  const data = loadDay(year, month, day);
+
+  const card = document.createElement('div');
+  card.className = 'day-card' + (isToday(year, month, day) ? ' today' : '');
+  card.dataset.dow = dow;
+  card.dataset.year = year;
+  card.dataset.month = month;
+  card.dataset.day = day;
+  if (isToday(year, month, day)) card.id = 'today-card';
+
+  const moodDisplay = data.mood !== null ? MOODS[data.mood] : '';
+  const preview = data.name || data.note || '';
+
+  card.innerHTML = `
+    <div class="day-header" onclick="toggleCard(this)">
+      <div class="day-number">${day}</div>
+      <div class="day-info">
+        <div class="day-name">${DAYS_DE[dow]}</div>
+        <div class="day-preview">${escHtml(preview)}</div>
+      </div>
+      <div class="day-mood-display">${moodDisplay}</div>
+      <div class="saved-dot"></div>
+      <div class="expand-icon">▼</div>
+    </div>
+    <div class="day-body">
+      <div class="day-body-inner">
+        <div>
+          <div class="field-label">Name / Person</div>
+          <input type="text" class="field-input name-input" placeholder="z.B. Treffen mit Anna…" value="${escHtml(data.name)}" />
+        </div>
+        <div>
+          <div class="field-label">Notizen</div>
+          <textarea class="field-input note-input" placeholder="Was war heute los?">${escHtml(data.note)}</textarea>
+        </div>
+        <div>
+          <div class="field-label">Stimmung</div>
+          <div class="mood-picker">
+            ${MOODS.map((m, i) => `<button class="mood-btn ${data.mood === i ? 'active' : ''}" data-mood="${i}" onclick="selectMood(this, ${i})">${m}</button>`).join('')}
+          </div>
+        </div>
+        <button class="delete-day-btn" onclick="deleteSingleDay(${year}, ${month}, ${day})">🗑 Tag löschen</button>
+      </div>
+    </div>
+  `;
+
+  // Auto-save on input
+  const nameInput = card.querySelector('.name-input');
+  const noteInput = card.querySelector('.note-input');
+
+  let saveTimer;
+  function triggerSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      const d = loadDay(year, month, day);
+      d.name = nameInput.value;
+      d.note = noteInput.value;
+      saveDay(year, month, day, d);
+      updatePreview(card, nameInput.value, noteInput.value);
+      flashSaved(card);
+    }, 600);
+  }
+
+  nameInput.addEventListener('input', triggerSave);
+  noteInput.addEventListener('input', triggerSave);
+
+  return card;
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function updatePreview(card, name, note) {
+  const preview = card.querySelector('.day-preview');
+  preview.textContent = name || note || '';
+}
+
+function flashSaved(card) {
+  const dot = card.querySelector('.saved-dot');
+  dot.classList.add('show');
+  setTimeout(() => dot.classList.remove('show'), 1500);
+}
+
+function toggleCard(header) {
+  const card = header.closest('.day-card');
+  const wasOpen = card.classList.contains('open');
+  // Close all others
+  document.querySelectorAll('.day-card.open').forEach(c => {
+    if (c !== card) c.classList.remove('open');
+  });
+  card.classList.toggle('open', !wasOpen);
+  if (!wasOpen) {
+    setTimeout(() => card.querySelector('.name-input').focus(), 310);
+  }
+}
+
+function selectMood(btn, moodIndex) {
+  const card = btn.closest('.day-card');
+  const year = +card.dataset.year;
+  const month = +card.dataset.month;
+  const day = +card.dataset.day;
+
+  card.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('active'));
+  const data = loadDay(year, month, day);
+
+  if (data.mood === moodIndex) {
+    data.mood = null;
+  } else {
+    btn.classList.add('active');
+    data.mood = moodIndex;
+  }
+
+  saveDay(year, month, day, data);
+  card.querySelector('.day-mood-display').textContent = data.mood !== null ? MOODS[data.mood] : '';
+  flashSaved(card);
+}
+
+function renderYear(year) {
+  const cal = document.getElementById('calendar');
+  cal.innerHTML = '';
+  document.getElementById('yearDisplay').textContent = year;
+
+  for (let m = 0; m < 12; m++) {
+    const monthDiv = document.createElement('div');
+    monthDiv.className = 'month';
+    monthDiv.style.animationDelay = (m * 0.03) + 's';
+
+    const title = document.createElement('div');
+    title.className = 'month-title';
+    title.textContent = MONTHS_DE[m] + ' ' + year;
+    monthDiv.appendChild(title);
+
+    const days = daysInMonth(year, m);
+    for (let d = 1; d <= days; d++) {
+      monthDiv.appendChild(createDayCard(year, m, d));
+    }
+
+    cal.appendChild(monthDiv);
+  }
+}
+
+function changeYear(delta) {
+  currentYear += delta;
+  renderYear(currentYear);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function scrollToToday() {
+  const todayYear = today.getFullYear();
+  if (currentYear !== todayYear) {
+    currentYear = todayYear;
+    renderYear(currentYear);
+  }
+  setTimeout(() => {
+    const el = document.getElementById('today-card');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('open');
+    }
+  }, 100);
+}
+
+// FAB scroll button
+const fab = document.getElementById('fab');
+window.addEventListener('scroll', () => {
+  fab.classList.toggle('visible', window.scrollY > 400);
+}, { passive: true });
+
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+
+// PRINT FUNCTIONS
+function openPrintModal() {
+  const sel = document.getElementById('printMonthSelect');
+  sel.innerHTML = '';
+  for (let m = 0; m < 12; m++) {
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = MONTHS_DE[m] + ' ' + currentYear;
+    if (m === today.getMonth() && currentYear === today.getFullYear()) opt.selected = true;
+    sel.appendChild(opt);
+  }
+  document.getElementById('printModal').classList.add('open');
+}
+
+function doPrint() {
+  const month = +document.getElementById('printMonthSelect').value;
+  const year = currentYear;
+  const days = daysInMonth(year, month);
+
+  const entries = [];
+  for (let d = 1; d <= days; d++) {
+    const data = loadDay(year, month, d);
+    if (data.name || data.note || data.mood !== null) {
+      entries.push({ day: d, data });
+    }
+  }
+
+  document.getElementById('printModal').classList.remove('open');
+
+  if (entries.length === 0) {
+    alert('Keine Eintraege in ' + MONTHS_DE[month] + ' ' + year + ' gefunden.');
+    return;
+  }
+
+  const moodCount = [0, 0, 0];
+  entries.forEach(e => { if (e.data.mood !== null) moodCount[e.data.mood]++; });
+
+  let html = '<div class="print-header"><h2>Auswertung ' + MONTHS_DE[month] + ' ' + year + '</h2>';
+  html += '<div class="print-meta">' + entries.length + ' von ' + days + ' Tagen mit Eintraegen &middot; Erstellt am ' + new Date().toLocaleDateString("de-DE") + '</div></div>';
+
+  entries.forEach(({ day, data }) => {
+    const date = new Date(year, month, day);
+    const dow = date.getDay();
+    html += '<div class="print-day"><div class="print-day-top">';
+    html += '<div class="print-day-num">' + day + '.</div>';
+    html += '<div><div class="print-day-name">' + DAYS_DE[dow] + '</div>';
+    html += '<div style="font-size:0.7rem;color:#777">' + day + '. ' + MONTHS_DE[month] + ' ' + year + '</div></div>';
+    html += '<div class="print-day-mood">' + (data.mood !== null ? MOODS[data.mood] : '') + '</div></div>';
+    if (data.name) html += '<div class="print-field"><div class="print-field-label">Name / Person</div><div class="print-field-value">' + escHtml(data.name) + '</div></div>';
+    if (data.note) html += '<div class="print-field"><div class="print-field-label">Notizen</div><div class="print-field-value">' + escHtml(data.note) + '</div></div>';
+    html += '</div>';
+  });
+
+  html += '<div class="print-summary"><h3>Stimmungsuebersicht</h3>';
+  html += '<div class="print-summary-row">';
+  html += '<div class="print-summary-item"><span style="font-size:1.2rem">😁</span> ' + moodCount[0] + 'x sehr gut</div>';
+  html += '<div class="print-summary-item"><span style="font-size:1.2rem">🙂</span> ' + moodCount[1] + 'x okay</div>';
+  html += '<div class="print-summary-item"><span style="font-size:1.2rem">☹️</span> ' + moodCount[2] + 'x schlecht</div>';
+  html += '</div></div>';
+
+  // Open in new window for reliable printing
+  const win = window.open('', '_blank', 'width=800,height=900');
+  win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Auswertung</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; color: #111; background: white; padding: 28px; }
+  .print-header { border-bottom: 2px solid #111; padding-bottom: 12px; margin-bottom: 20px; }
+  .print-header h2 { font-family: 'DM Serif Display', serif; font-size: 1.7rem; color: #111; }
+  .print-meta { font-size: 0.75rem; color: #666; margin-top: 4px; }
+  .print-day { border: 1px solid #ddd; border-radius: 8px; margin-bottom: 12px; padding: 14px; page-break-inside: avoid; }
+  .print-day-top { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .print-day-num { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: #111; min-width: 36px; }
+  .print-day-name { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #555; }
+  .print-day-date { font-size: 0.7rem; color: #777; margin-top: 2px; }
+  .print-day-mood { font-size: 1.4rem; margin-left: auto; }
+  .print-field { margin-bottom: 8px; }
+  .print-field-label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #999; margin-bottom: 3px; }
+  .print-field-value { font-size: 0.88rem; color: #222; line-height: 1.5; white-space: pre-wrap; }
+  .print-summary { margin-top: 24px; border-top: 2px solid #ddd; padding-top: 16px; }
+  .print-summary h3 { font-family: 'DM Serif Display', serif; font-size: 1.1rem; margin-bottom: 10px; }
+  .print-summary-row { display: flex; gap: 24px; font-size: 0.9rem; }
+  .print-summary-item { display: flex; align-items: center; gap: 6px; }
+  @media print { body { padding: 0; } }
+</style>
+</head>
+<body>` + html + `</body></html>`);
+  win.document.close();
+  win.onload = () => {
+    setTimeout(() => { win.print(); }, 400);
+  };
+}
+
+
+// ── DELETE FUNCTIONS ─────────────────────────────────────────────
+
+let currentDelTab = 'day';
+
+function openDeleteModal() {
+  // populate year selects
+  const years = [];
+  for (let k in localStorage) {
+    if (k.startsWith('day_')) {
+      const y = parseInt(k.split('_')[1]);
+      if (!isNaN(y) && !years.includes(y)) years.push(y);
+    }
+  }
+  years.sort();
+  if (!years.includes(currentYear)) years.push(currentYear);
+  years.sort();
+
+  ['del-month-y', 'del-year-y'].forEach(id => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = '';
+    years.forEach(y => {
+      const o = document.createElement('option');
+      o.value = y; o.textContent = y;
+      if (y === currentYear) o.selected = true;
+      sel.appendChild(o);
+    });
+  });
+
+  const mSel = document.getElementById('del-month-m');
+  mSel.innerHTML = '';
+  MONTHS_DE.forEach((m, i) => {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = m;
+    if (i === today.getMonth()) o.selected = true;
+    mSel.appendChild(o);
+  });
+
+  // default date inputs to today
+  const todayStr = today.toISOString().slice(0,10);
+  document.getElementById('del-day-date').value = todayStr;
+  document.getElementById('del-range-from').value = todayStr;
+  document.getElementById('del-range-to').value = todayStr;
+
+  document.getElementById('deleteModal').classList.add('open');
+}
+
+function closeDeleteModal() {
+  document.getElementById('deleteModal').classList.remove('open');
+}
+
+function switchDelTab(tab, btn) {
+  currentDelTab = tab;
+  document.querySelectorAll('.del-tab').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.del-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('del-panel-' + tab).classList.add('active');
+}
+
+function deleteSingleDay(year, month, day) {
+  if (!confirm('Eintrag vom ' + day + '. ' + MONTHS_DE[month] + ' ' + year + ' wirklich löschen?')) return;
+  localStorage.removeItem(storageKey(year, month, day));
+  renderYear(currentYear);
+  showToast('Tag gelöscht');
+}
+
+function confirmDelete() {
+  let count = 0;
+
+  if (currentDelTab === 'day') {
+    const val = document.getElementById('del-day-date').value;
+    if (!val) { alert('Bitte ein Datum wählen.'); return; }
+    const [y, m, d] = val.split('-').map(Number);
+    const key = storageKey(y, m-1, d);
+    if (localStorage.getItem(key)) { localStorage.removeItem(key); count = 1; }
+
+  } else if (currentDelTab === 'month') {
+    const m = +document.getElementById('del-month-m').value;
+    const y = +document.getElementById('del-month-y').value;
+    const days = daysInMonth(y, m);
+    for (let d = 1; d <= days; d++) {
+      const key = storageKey(y, m, d);
+      if (localStorage.getItem(key)) { localStorage.removeItem(key); count++; }
+    }
+
+  } else if (currentDelTab === 'year') {
+    const y = +document.getElementById('del-year-y').value;
+    for (let m = 0; m < 12; m++) {
+      const days = daysInMonth(y, m);
+      for (let d = 1; d <= days; d++) {
+        const key = storageKey(y, m, d);
+        if (localStorage.getItem(key)) { localStorage.removeItem(key); count++; }
+      }
+    }
+
+  } else if (currentDelTab === 'range') {
+    const from = document.getElementById('del-range-from').value;
+    const to = document.getElementById('del-range-to').value;
+    if (!from || !to) { alert('Bitte beide Daten wählen.'); return; }
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    if (fromDate > toDate) { alert('Das Von-Datum muss vor dem Bis-Datum liegen.'); return; }
+    const cur = new Date(fromDate);
+    while (cur <= toDate) {
+      const y = cur.getFullYear(), m = cur.getMonth(), d = cur.getDate();
+      const key = storageKey(y, m, d);
+      if (localStorage.getItem(key)) { localStorage.removeItem(key); count++; }
+      cur.setDate(cur.getDate() + 1);
+    }
+
+  } else if (currentDelTab === 'auto') {
+    const days = +document.getElementById('del-auto-days').value;
+    if (!days || days < 1) { alert('Bitte eine gültige Anzahl Tage eingeben.'); return; }
+    const cutoff = new Date(today);
+    cutoff.setDate(cutoff.getDate() - days);
+    for (let k in localStorage) {
+      if (!k.startsWith('day_')) continue;
+      const parts = k.split('_');
+      const entryDate = new Date(+parts[1], +parts[2]-1, +parts[3]);
+      if (entryDate < cutoff) { localStorage.removeItem(k); count++; }
+    }
+  }
+
+  closeDeleteModal();
+  renderYear(currentYear);
+  showToast(count > 0 ? count + ' Eintrag' + (count > 1 ? 'e' : '') + ' gelöscht' : 'Keine Einträge gefunden');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// close delete modal on overlay click
+document.getElementById('deleteModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('deleteModal')) closeDeleteModal();
+});
+
+// Init
+renderYear(currentYear);
+
+// Auto-scroll to today on first load
+setTimeout(scrollToToday, 200);
+</script>
+</body>
+</html>
